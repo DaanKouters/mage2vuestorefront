@@ -2,6 +2,7 @@
 const AbstractNosqlAdapter = require('./abstract');
 const elasticsearch = require('elasticsearch');
 const AgentKeepAlive = require('agentkeepalive');
+const AgentKeepAliveHttps = require('agentkeepalive').HttpsAgent;
 
 
 class ElasticsearchAdapter extends AbstractNosqlAdapter {
@@ -27,7 +28,6 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
     this.updateDocument.bind(this);
   }
 
-
   /**
    * Close the nosql database connection - abstract to the driver
    */
@@ -35,6 +35,27 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
     //this.db.close();
   }
 
+  /**
+   * Get documents
+   * @param collectionName collection name
+   * @param query query object
+  */  
+  getDocuments(collectionName, queryBody) {
+    return new Promise((resolve, reject) => {
+      this.db.search({ // requires ES 5.5
+        index: this.config.db.indexName,
+        type: collectionName,
+          body: queryBody
+      }, function (error, response) {
+        if (error) reject(error);
+        if (response.hits && response.hits.hits) {
+          resolve(response.hits.hits.map(h => h._source))
+        } else {
+          reject(new Error('Invalid Elastic response'))
+        }
+      });
+    })
+  }
 
   /**
    * Update single document in database
@@ -88,7 +109,6 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
     }
   }
 
-
   /**
    * Update multiple documents in database
    * @param {array} items to be updated
@@ -131,8 +151,6 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
       index++;
     }
 
-
-
   }
 
   /**
@@ -145,14 +163,18 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
       this.db = new elasticsearch.Client({
         host: this.config.db.url,
         log: 'error',
+        apiVersion: '5.5',
 
         maxRetries: 10,
         keepAlive: true,
         maxSockets: 10,
         minSockets: 10,
         requestTimeout: 1800000,
-       
+
         createNodeAgent: function (connection, config) {
+          if (connection.useSsl) {
+            return new AgentKeepAliveHttps(connection.makeAgentConfig(config));
+          }
           return new AgentKeepAlive(connection.makeAgentConfig(config));
         }
 
@@ -163,7 +185,6 @@ class ElasticsearchAdapter extends AbstractNosqlAdapter {
 
     done(this.db);
   }
-
 
 }
 

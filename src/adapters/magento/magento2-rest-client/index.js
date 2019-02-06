@@ -14,7 +14,9 @@ var taxRates = require('./lib/tax_rates');
 var taxRules = require('./lib/tax_rules');
 var stockItems = require('./lib/stock_items');
 var productLinks = require('./lib/product_links');
-
+var reviews = require('./lib/reviews');
+var blocks = require('./lib/blocks');
+var pages = require('./lib/pages');
 
 const MAGENTO_API_VERSION = 'V1';
 
@@ -22,7 +24,7 @@ module.exports.Magento2Client = function (options) {
     var instance = {};
 
     options.version = MAGENTO_API_VERSION;
-    
+
     var client = RestClient(options);
 
     instance.attributes = attributes(client);
@@ -38,6 +40,9 @@ module.exports.Magento2Client = function (options) {
     instance.customOptions = customOptions(client);
     instance.bundleOptions = bundleOptions(client);
     instance.productLinks = productLinks(client);
-    
+    instance.reviews = reviews(client);
+    instance.blocks = blocks(client);
+    instance.pages = pages(client);
+
     return instance;
 }

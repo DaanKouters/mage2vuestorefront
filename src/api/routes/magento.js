@@ -6,18 +6,15 @@ let config = require('../../config');
 let AdapterFactory = require('../../adapters/factory');
 let factory = new AdapterFactory(config);
 
-
-
-
 let router = express.Router();
 
+router.post('/products/update', function(req, res) { // TODO: add api key middleware
 
-router.get('/products/pull/:skus', function(req, res) { // TODO: add api key middleware
+  let skus_array = req.body.sku;
 
-  let skus_array = req.params.skus.split(',') ;
-
+  console.log('Incoming pull request for', skus_array)
   if(skus_array.length > 0){
-    let queue = kue.createQueue();
+    let queue = kue.createQueue(Object.assign(config.kue, { redis: config.redis }));
 
     queue.createJob('product', { skus: skus_array, adapter: 'magento' }).save();
     res.json({ status: 'done', message: 'Products ' + skus_array + ' scheduled to be refreshed'});
@@ -25,7 +22,5 @@ router.get('/products/pull/:skus', function(req, res) { // TODO: add api key mid
     res.json({ status: 'error', message: 'Please provide product SKU separated by comma'});
   }
 });
-
-
 
 module.exports = router;
